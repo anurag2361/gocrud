@@ -67,6 +67,23 @@ func GetHandler(res http.ResponseWriter, req *http.Request) {
 	res.Write(exampleresult)
 }
 
+//IDHandler function to get single doc by id
+func IDHandler(res http.ResponseWriter, req *http.Request, params martini.Params) {
+	id := bson.ObjectIdHex(params["id"])    //reading id param
+	example, object := Example{}, Example{} //assigning 2 vars, one for recieving the object and other for storing the recieved object
+	result := Collection.FindId(id).Iter()  //iterating over the found object
+	for result.Next(&example) {             //recieved object is stored in example
+		object = example //that object is now stored to object variable
+	}
+	response, err := json.Marshal(object) //marshalling json to send to frontend
+	if err != nil {
+		panic(err)
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	res.Write(response)
+}
+
 //UpdateHandler function to update document
 func UpdateHandler(res http.ResponseWriter, req *http.Request, params martini.Params) {
 	id := bson.ObjectIdHex(params["id"]) //storing required ObjectId recieved from url parameter to id variable
@@ -103,6 +120,7 @@ func main() {
 	m.Get("/", MainHandler)
 	m.Post("/createname", CreateHandler)
 	m.Get("/getnames", GetHandler)
+	m.Get("/getname/:id", IDHandler)
 	m.Put("/updatenames/:id", UpdateHandler)
 	m.Delete("/deletename/:id", DeleteHandler)
 	log.Println("Connecting to MongoDB")
