@@ -26,6 +26,11 @@ type Example struct {
 	CreatedOn time.Time     `json:"createdon"`
 }
 
+//Data struct
+type Data struct {
+	Data []Example `json:"data"`
+}
+
 //CreateHandler function to create document
 func CreateHandler(res http.ResponseWriter, req *http.Request) {
 	newexample := Example{}                             //create an empty object of type Example struct
@@ -53,13 +58,15 @@ func CreateHandler(res http.ResponseWriter, req *http.Request) {
 //GetHandler function to retrieve document
 func GetHandler(res http.ResponseWriter, req *http.Request) {
 	var example []Example //assigning a new empty array to store recieved objects
+	var data Data
 	result := Example{}
 	iter := Collection.Find(nil).Iter()
 	for iter.Next(&result) { //iterating over recieved objects
 		example = append(example, result) //appending recieved objects to array
 	}
+	data.Data = example
 	res.Header().Set("Content-Type", "application/json")
-	exampleresult, err := json.Marshal(example)
+	exampleresult, err := json.Marshal(data)
 	if err != nil {
 		panic(err)
 	}
@@ -110,14 +117,14 @@ func DeleteHandler(res http.ResponseWriter, req *http.Request, params martini.Pa
 	res.WriteHeader(http.StatusNoContent)
 }
 
-//MainHandler function for index url
-func MainHandler() string {
+//Handler function for index url
+func Handler() string {
 	return "Index"
 }
 
 func main() {
 	m := martini.Classic()
-	m.Get("/", MainHandler)
+	m.Get("/", Handler)
 	m.Post("/createname", CreateHandler)
 	m.Get("/getnames", GetHandler)
 	m.Get("/getname/:id", IDHandler)
