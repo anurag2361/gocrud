@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -122,6 +125,45 @@ func Handler() string {
 	return "Index"
 }
 
+//UploadHandler is a sample function to upload a file
+func UploadHandler(res http.ResponseWriter, req *http.Request) {
+	file, handle, err := req.FormFile("file")
+	if err != nil {
+		fmt.Fprintf(res, "%v", err)
+		return
+	}
+	defer file.Close()
+	mimeType := handle.Header.Get("Content-Type")
+	switch mimeType {
+	case "image/jpeg":
+		saveFile(res, file, handle)
+	case "image/png":
+		saveFile(res, file, handle)
+	default:
+		jsonResponse(res, http.StatusBadRequest, "The format file is not valid.")
+	}
+}
+
+func saveFile(res http.ResponseWriter, file multipart.File, handle *multipart.FileHeader) {
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Fprintf(res, "%v", err)
+		return
+	}
+	err = ioutil.WriteFile("./files/"+handle.Filename, data, 0666)
+	if err != nil {
+		fmt.Fprintf(res, "%v", err)
+		return
+	}
+	jsonResponse(res, http.StatusCreated, "File Uploaded")
+}
+
+func jsonResponse(res http.ResponseWriter, code int, message string) {
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(code)
+	fmt.Fprint(res, message)
+}
+
 func main() {
 	m := martini.Classic()
 	m.Get("/", Handler)
@@ -130,6 +172,7 @@ func main() {
 	m.Get("/getname/:id", IDHandler)
 	m.Put("/updatenames/:id", UpdateHandler)
 	m.Delete("/deletename/:id", DeleteHandler)
+	m.Post("/upload", UploadHandler)
 	log.Println("Connecting to MongoDB")
 	Session, err = mgo.Dial("localhost")
 	if err != nil {
